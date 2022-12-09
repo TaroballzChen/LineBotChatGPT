@@ -1,0 +1,4 @@
+github.com/joho/godotenv v1.4.0 h1:3l4+N6zfMWnkbPEXKng2o2/MR5mSwTrBih4ZEkkz1lg=
+github.com/joho/godotenv v1.4.0/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
+github.com/line/line-bot-sdk-go/v7 v7.18.0 h1:ogrOioYKnCuyDlbNAuFb7hGdv1KGkluKWUcZx/Uocds=
+github.com/line/line-bot-sdk-go/v7 v7.18.0/go.mod h1:2CXH5xBgADszymGNRRUiUqBQ/0G6r2nx3BviBYtnB3U=
