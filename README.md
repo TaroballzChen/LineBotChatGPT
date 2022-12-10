@@ -13,7 +13,6 @@ touch .env
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
 echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
 echo OpenApiKey=your_OpenApiKey >>.env
-echo WriteHistory=1 # 1 for WriteHistory to history.txt, 0 for NO
 go run main.go
 ```
 
