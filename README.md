@@ -15,6 +15,7 @@ touch .env
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
 echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
 echo OpenApiKey=your_OpenApiKey >>.env
+echo WriteHistory=1 # 1 for WriteHistory to history.txt, 0 for NO
 go run main.go
 ```
 
@@ -26,9 +27,13 @@ enjoy!
 1. download the `Dockerfile` in this project
 2. `docker build --no-cache -t LineBotChatGPT:latest .`
 3. `docker run -p 8080:80 -v $PWD/.env:/LineBotChatGPT/.env -v $PWD/history.txt:/LineBotChatGPT/history.txt LineBotChatGPT`
-then use `ngrok` or other method(cloud container, nginx with certbot etc.) exposed `80` port to public network with SSL
+then use `ngrok` or other method(cloud container like railway.app, Heroku or nginx with certbot etc.) exposed `80` port to public network with SSL
 
 enjoy!
+
+### Railway.app Deploy
+TODO:
+
 
 ## result
 ![img.png](img.png)

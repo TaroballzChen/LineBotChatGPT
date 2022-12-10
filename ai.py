@@ -44,4 +44,7 @@ if __name__ == '__main__':
     AI_resp = response['choices'][0]['text']
     print(AI_resp.strip())
     p += f"{AI_resp}\nHuman: "
-    write_history('./history.txt', p)
+    
+    is_write_history = os.getenv('WriteHistory')
+    if is_write_history:
+        write_history('./history.txt', p)
