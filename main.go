@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	gpt3 "github.com/PullRequestInc/go-gpt3"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -23,12 +24,22 @@ func main() {
 	http.ListenAndServe(addr, nil)
 }
 
-func callAI(question string) string {
-	out, err := exec.Command("python3", "ai.py", "--question", question).Output()
+func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) string {
+	resp, err := client.CompletionWithEngine(ctx, gpt3.TextDavinci003Engine, gpt3.CompletionRequest{
+		Prompt: []string{
+			quesiton,
+		},
+		MaxTokens:        gpt3.IntPtr(3000),
+		Temperature:      gpt3.Float32Ptr(0.9),
+		TopP:             gpt3.Float32Ptr(1),
+		FrequencyPenalty: float32(0),
+		PresencePenalty:  float32(0.6),
+	})
 	if err != nil {
-		log.Println(err)
+		log.Println("Get Open AI Response Error: ", err)
 	}
-	return string(out)
+	answer := resp.Choices[0].Text
+	return answer
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +67,14 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 				question := strings.Replace(message.Text, AIName, "", 1)
 				log.Println("Q:", question)
-				answer := callAI(question)
+
+				apiKey := os.Getenv("OpenApiKey")
+				if apiKey == "" {
+					panic("Missing API KEY")
+				}
+				ctx := context.Background()
+				client := gpt3.NewClient(apiKey)
+				answer := GetResponse(client, ctx, question)
 				answer = strings.Replace(answer, "AI:", "", 1)
 				log.Println("A:", answer)
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {

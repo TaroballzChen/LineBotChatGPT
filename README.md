@@ -2,14 +2,12 @@
 utilized openai api for implementation of chatGPT with LineBot
 
 ## Work Environment for myself
-- `Python 3.10.4`
 - `go version go1.18.1 darwin/amd64`
 
 ## Usage
 
 ```shell
 git clone https://github.com/TaroballzChen/LineBotChatGPT
-pip3 install openai python-dotenv
 cd LineBotChatGPT
 touch .env
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
@@ -48,3 +46,5 @@ enjoy!
 1. https://github.com/kkdai/linebot-group
 2. https://github.com/kkdai/LineBotTemplate
 3. https://www.learncodewithmike.com/2020/06/python-line-bot.html
+4. https://github.com/kkdai/chatgpt
+5. https://github.com/PullRequestInc/go-gpt3
