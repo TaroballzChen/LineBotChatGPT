@@ -39,6 +39,7 @@ func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) strin
 		log.Println("Get Open AI Response Error: ", err)
 	}
 	answer := resp.Choices[0].Text
+	answer = strings.TrimSpace(answer)
 	return answer
 }
 
@@ -75,7 +76,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				ctx := context.Background()
 				client := gpt3.NewClient(apiKey)
 				answer := GetResponse(client, ctx, question)
-				answer = strings.Replace(answer, "AI:", "", 1)
 				log.Println("A:", answer)
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {
 					log.Print(err)
