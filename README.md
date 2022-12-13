@@ -9,10 +9,10 @@ utilized openai api for implementation of chatGPT with LineBot
 ```shell
 git clone https://github.com/TaroballzChen/LineBotChatGPT
 cd LineBotChatGPT
-touch .env
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
 echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
 echo OpenApiKey=your_OpenApiKey >>.env
+# you could modify the GPT-3 completion model parameter by modifying `.env` file
 go run main.go
 ```
 
@@ -21,9 +21,18 @@ then use `ngrok` or other method(cloud container, nginx with certbot etc.) expos
 enjoy!
 
 ### Dockerfile
-1. download the `Dockerfile` in this project
+1. download the `Dockerfile`, `.env` file in this project
 2. `docker build --no-cache -t LineBotChatGPT:latest .`
-3. `docker run -p 8080:80 -v $PWD/.env:/LineBotChatGPT/.env -v $PWD/history.txt:/LineBotChatGPT/history.txt LineBotChatGPT`
+3. modify the `.env` file to fill the LINEBOT and OpneAI token:
+
+```shell
+echo ChannelSecret=your_LINE_ChannelSecret >> .env
+echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
+echo OpenApiKey=your_OpenApiKey >>.env
+# try to modify the GPT-3 completion model parameter by modifying `.env` file
+```
+
+4. `docker run -p 8080:80 -v $PWD/.env:/LineBotChatGPT/.env LineBotChatGPT`
 then use `ngrok` or other method(cloud container like railway.app, Heroku or nginx with certbot etc.) exposed `80` port to public network with SSL
 
 enjoy!
@@ -33,9 +42,11 @@ enjoy!
 
 - fill your LINE `ChannelSecret`, `ChannelAccessToken` and OpenAI `OpenApiKey` token
 
+P.S. You should own the github account to sign up the railway.app account. When you create container by my template on the above, the railway.app would help you fork my github project to your repo. then you could modify the model parameter's value on your forked project.
+
 enjoy!
 
-
+TODO: [tutorail video]()
 
 
 ## result
