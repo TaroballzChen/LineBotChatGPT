@@ -7,6 +7,8 @@ RUN cd / && git clone https://github.com/TaroballzChen/LineBotChatGPT
 
 WORKDIR /LineBotChatGPT
 
+RUN git pull
+
 EXPOSE 80
 
 ENTRYPOINT ["go","run","main.go"]
