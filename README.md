@@ -38,7 +38,7 @@ then use `ngrok` or other method(cloud container like railway.app, Heroku or ngi
 enjoy!
 
 ### Railway.app Deploy
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/2W7m9_?referralCode=Taroballz)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/UTbtDt?referralCode=Taroballz)
 
 - fill your LINE `ChannelSecret`, `ChannelAccessToken` and OpenAI `OpenApiKey` token
 
