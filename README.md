@@ -46,7 +46,7 @@ P.S. You should own the github account to sign up the railway.app account. When 
 
 enjoy!
 
-TODO: [tutorail video]()
+[integration of chatgpt and LINEBOT on railway.app cloud container tutorial video](https://youtu.be/4i_d8UFz6NQ)
 
 
 ## result
