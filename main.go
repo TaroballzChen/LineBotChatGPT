@@ -150,7 +150,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.RoomID != "":
 					//In the room
 					if !strings.HasPrefix(message.Text, AIName) {
-						log.Println("Room",event.Source.GroupID, "message: ", message.Text)
+						log.Println("Room",event.Source.RoomID, "message: ", message.Text)
 						return
 					}
 					question = strings.Replace(question, AIName, "", 1)
