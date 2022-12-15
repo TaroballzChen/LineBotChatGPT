@@ -126,6 +126,14 @@ func getenvBoolean(key string) (bool, error) {
 	return v, nil
 }
 
+func isChatPartner(user linebot.UserProfileResponse) bool {
+	if user.DisplayName == chatPartner {
+		log.Println("the chatPartner", chatPartner, "is existed!")
+		return true
+	}
+	return false
+}
+
 func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) string {
 	resp, err := client.CompletionWithEngine(ctx, gpt3.TextDavinci003Engine, gpt3.CompletionRequest{
 		Prompt: []string{
@@ -190,10 +198,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				answer := GetResponse(client, ctx, question)
 				log.Println("A:", answer)
 
-				if event.Source.GroupID != "" || event.Source.RoomID != "" {
-					if isChatWithAnotherAI && chatPartner != "" {
-						answer = chatPartner + answer
+				if event.Source.GroupID != "" && isChatWithAnotherAI && chatPartner != "" {
+					if profile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do(); err == nil {
+						if isChatPartner(*profile) {
+							answer = chatPartner + answer
+						}
 					}
+
 				}
 
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {
