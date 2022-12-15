@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	gpt3 "github.com/PullRequestInc/go-gpt3"
 	_ "github.com/joho/godotenv/autoload"
@@ -9,10 +10,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
-	"errors"
 	"strconv"
+	"strings"
 )
+
 //linebot client ptr
 var bot *linebot.Client
 
@@ -28,6 +29,9 @@ var FrequencyPenalty float32
 var PresencePenalty float32
 var ErrEnvVarEmpty = errors.New("getenv: environment variable empty")
 
+//chatWithAI
+var isChatWithAnotherAI bool
+var chatPartner string
 
 func main() {
 	var err error
@@ -42,62 +46,84 @@ func main() {
 	http.ListenAndServe(addr, nil)
 }
 
-func GetModelParamFromEnv(){
+func GetModelParamFromEnv() {
 	var err error
-	if MaxTokens, err = getenvInt("max_tokens");err != nil {
+	if MaxTokens, err = getenvInt("max_tokens"); err != nil {
 		log.Println("max_tokens", err)
 		err = nil
 	}
-	if Temperature, err = getenvFloat("temperature");err !=nil {
+	if Temperature, err = getenvFloat("temperature"); err != nil {
 		log.Println("temperature", err)
 		err = nil
 	}
-	if TopP, err = getenvFloat("top_p");err !=nil {
+	if TopP, err = getenvFloat("top_p"); err != nil {
 		log.Println("top_p", err)
 		err = nil
 	}
-	if FrequencyPenalty, err = getenvFloat("FrequencyPenalty");err !=nil {
+	if FrequencyPenalty, err = getenvFloat("FrequencyPenalty"); err != nil {
 		log.Println("FrequencyPenalty", err)
 		err = nil
 	}
-	if PresencePenalty, err = getenvFloat("PresencePenalty");err !=nil {
+	if PresencePenalty, err = getenvFloat("PresencePenalty"); err != nil {
 		log.Println("PresencePenalty", err)
 		err = nil
 	}
+	if isChatWithAnotherAI, err = getenvBoolean("isChatWithAnotherAI"); err != nil {
+		log.Println("isChatWithAnotherAI", err)
+		err = nil
+	}
 
+	if isChatWithAnotherAI {
+		if chatPartner, err = getenvStr("chatPartner"); err != nil {
+			log.Println("chatPartner", err)
+			err = nil
+		}
+	}
 }
 
 func getenvStr(key string) (string, error) {
-    v := os.Getenv(key)
-    if v == "" {
-        return v, ErrEnvVarEmpty
-    }
+	v := os.Getenv(key)
+	if v == "" {
+		return v, ErrEnvVarEmpty
+	}
 	log.Println(key, v)
-    return v, nil
+	return v, nil
 }
 
 func getenvInt(key string) (int, error) {
-    s, err := getenvStr(key)
-    if err != nil {
-        return 0, err
-    }
-    v, err := strconv.Atoi(s)
-    if err != nil {
-        return 0, err
-    }
-    return v, nil
+	s, err := getenvStr(key)
+	if err != nil {
+		return 0, err
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, err
+	}
+	return v, nil
 }
 
 func getenvFloat(key string) (float32, error) {
-    s, err := getenvStr(key)
-    if err != nil {
-        return 0, err
-    }
-    v, err := strconv.ParseFloat(s, 32)
-    if err != nil {
-        return 0, err
-    }
-    return float32(v), nil
+	s, err := getenvStr(key)
+	if err != nil {
+		return 0, err
+	}
+	v, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return 0, err
+	}
+	return float32(v), nil
+}
+
+func getenvBoolean(key string) (bool, error) {
+	s, err := getenvStr(key)
+	if err != nil {
+		return false, err
+	}
+	v, err := strconv.ParseBool(s)
+	if err != nil {
+		return false, err
+	}
+	return v, nil
 }
 
 func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) string {
@@ -129,20 +155,20 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	for _, event := range events {
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
 			// Handle only on text message
 			case *linebot.TextMessage:
-				
+
 				question := message.Text
-				
+
 				switch {
 				case event.Source.GroupID != "":
 					//In the group
 					if !strings.HasPrefix(message.Text, AIName) {
-						log.Println("Group",event.Source.GroupID, "message: ", message.Text)
+						log.Println("Group", event.Source.GroupID, "message: ", message.Text)
 						return
 					}
 					question = strings.Replace(question, AIName, "", 1)
@@ -150,19 +176,26 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.RoomID != "":
 					//In the room
 					if !strings.HasPrefix(message.Text, AIName) {
-						log.Println("Room",event.Source.RoomID, "message: ", message.Text)
+						log.Println("Room", event.Source.RoomID, "message: ", message.Text)
 						return
 					}
 					question = strings.Replace(question, AIName, "", 1)
 
 				}
-					
+
 				log.Println("Q:", question)
 
 				ctx := context.Background()
 				client := gpt3.NewClient(OpenAIApiKey)
 				answer := GetResponse(client, ctx, question)
 				log.Println("A:", answer)
+
+				if event.Source.GroupID != "" || event.Source.RoomID != "" {
+					if isChatWithAnotherAI && chatPartner != "" {
+						answer = chatPartner + answer
+					}
+				}
+
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {
 					log.Print(err)
 				}
