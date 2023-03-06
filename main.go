@@ -135,20 +135,30 @@ func isChatPartner(user linebot.UserProfileResponse) bool {
 }
 
 func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) string {
-	resp, err := client.CompletionWithEngine(ctx, gpt3.TextDavinci003Engine, gpt3.CompletionRequest{
-		Prompt: []string{
-			quesiton,
+	resp, err := client.ChatCompletion(ctx, gpt3.ChatCompletionRequest{
+		Model: gpt3.GPT3Dot5Turbo,
+		Messages: []gpt3.ChatCompletionRequestMessage{
+			{
+				Role: "system",
+				Content: "你是一個知識儲量非常豐富且有問必答的強大AI助理",
+			},
+			{
+				Role: "user",
+				Content: quesiton,
+			},
+
 		},
-		MaxTokens:        gpt3.IntPtr(MaxTokens),
-		Temperature:      gpt3.Float32Ptr(Temperature),
-		TopP:             gpt3.Float32Ptr(TopP),
-		FrequencyPenalty: float32(FrequencyPenalty),
-		PresencePenalty:  float32(PresencePenalty),
+		MaxTokens: 	  MaxTokens,
+		Temperature:  Temperature,
+		TopP:         TopP,
+		FrequencyPenalty: FrequencyPenalty,
+		PresencePenalty:  PresencePenalty,	
 	})
+	
 	if err != nil {
 		log.Println("Get Open AI Response Error: ", err)
 	}
-	answer := resp.Choices[0].Text
+	answer := resp.Choices[0].Message.Content
 	answer = strings.TrimSpace(answer)
 	return answer
 }

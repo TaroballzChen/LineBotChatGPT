@@ -52,6 +52,9 @@ enjoy!
 ## result
 ![img.png](img.png)
 
+## update
+- 2023.3.6 change the model from `Completion` to `ChatCompletion` with `GPT3Dot5Turbo`
+
 ## Reference
 1. https://github.com/kkdai/linebot-group
 2. https://github.com/kkdai/LineBotTemplate
