@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	gpt3 "github.com/PullRequestInc/go-gpt3"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
+	openai "github.com/sashabaranov/go-openai"
 	"log"
 	"net/http"
 	"os"
@@ -14,14 +14,14 @@ import (
 	"strings"
 )
 
-//linebot client ptr
+// linebot client ptr
 var bot *linebot.Client
 
-//OpenAI Api key
+// OpenAI Api key
 var OpenAIApiKey string
 var AIName string
 
-//CompletionModelParam
+// CompletionModelParam
 var MaxTokens int
 var Temperature float32
 var TopP float32
@@ -29,7 +29,7 @@ var FrequencyPenalty float32
 var PresencePenalty float32
 var ErrEnvVarEmpty = errors.New("getenv: environment variable empty")
 
-//chatWithAI
+// chatWithAI
 var isChatWithAnotherAI bool
 var chatPartner string
 
@@ -134,27 +134,26 @@ func isChatPartner(user linebot.UserProfileResponse) bool {
 	return false
 }
 
-func GetResponse(client gpt3.Client, ctx context.Context, quesiton string) string {
-	resp, err := client.ChatCompletion(ctx, gpt3.ChatCompletionRequest{
-		Model: gpt3.GPT3Dot5Turbo,
-		Messages: []gpt3.ChatCompletionRequestMessage{
+func GetResponse(client *openai.Client, ctx context.Context, quesiton string) string {
+	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model: openai.GPT4,
+		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: "system",
+				Role:    openai.ChatMessageRoleSystem,
 				Content: "你是一個知識儲量非常豐富且有問必答的強大AI助理",
 			},
 			{
-				Role: "user",
+				Role:    "user",
 				Content: quesiton,
 			},
-
 		},
-		MaxTokens: 	  MaxTokens,
-		Temperature:  Temperature,
-		TopP:         TopP,
+		MaxTokens:        MaxTokens,
+		Temperature:      Temperature,
+		TopP:             TopP,
 		FrequencyPenalty: FrequencyPenalty,
-		PresencePenalty:  PresencePenalty,	
+		PresencePenalty:  PresencePenalty,
 	})
-	
+
 	if err != nil {
 		log.Println("Get Open AI Response Error: ", err)
 	}
@@ -204,7 +203,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println("Q:", question)
 
 				ctx := context.Background()
-				client := gpt3.NewClient(OpenAIApiKey)
+				client := openai.NewClient(OpenAIApiKey)
 				answer := GetResponse(client, ctx, question)
 				log.Println("A:", answer)
 
