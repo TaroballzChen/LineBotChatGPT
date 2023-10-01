@@ -134,7 +134,7 @@ func isChatPartner(user linebot.UserProfileResponse) bool {
 	return false
 }
 
-func GetResponse(client *openai.Client, ctx context.Context, quesiton string) string {
+func GetResponse(client *openai.Client, ctx context.Context, question string) string {
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: openai.GPT4,
 		Messages: []openai.ChatCompletionMessage{
@@ -144,7 +144,7 @@ func GetResponse(client *openai.Client, ctx context.Context, quesiton string) st
 			},
 			{
 				Role:    "user",
-				Content: quesiton,
+				Content: question,
 			},
 		},
 		MaxTokens:        MaxTokens,
@@ -155,10 +155,31 @@ func GetResponse(client *openai.Client, ctx context.Context, quesiton string) st
 	})
 
 	if err != nil {
-		log.Println("Get Open AI Response Error: ", err)
+		errString := fmt.Sprintf("Get Open AI Response Error: %s", err)
+		log.Println(errString)
+		return errString
 	}
 	answer := resp.Choices[0].Message.Content
 	answer = strings.TrimSpace(answer)
+	return answer
+}
+
+func GetImageResponse(client *openai.Client, ctx context.Context, question string) string {
+	resp, err := client.CreateImage(ctx, openai.ImageRequest{
+		Prompt:         question,
+		Size:           openai.CreateImageSize256x256,
+		ResponseFormat: openai.CreateImageResponseFormatURL,
+		N:              1,
+	},
+	)
+
+	if err != nil {
+		errString := fmt.Sprintf("Image creation error: %s", err)
+		log.Println("Image creation error: ", err)
+		return errString
+	}
+
+	answer := resp.Data[0].URL
 	return answer
 }
 
@@ -204,7 +225,18 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 				ctx := context.Background()
 				client := openai.NewClient(OpenAIApiKey)
-				answer := GetResponse(client, ctx, question)
+
+				var answer string
+
+				// Handle the special question with image and text
+				switch {
+				case strings.HasPrefix(question, "作圖"):
+					question = strings.Replace(question, "作圖", "", 1)
+					answer = GetImageResponse(client, ctx, question)
+				default:
+					answer = GetResponse(client, ctx, question)
+				}
+
 				log.Println("A:", answer)
 
 				if event.Source.GroupID != "" && isChatWithAnotherAI && chatPartner != "" {
@@ -215,9 +247,15 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 
 				}
-
-				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {
-					log.Print(err)
+				switch {
+				case strings.HasPrefix(answer, "https://"):
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(answer, answer)).Do(); err != nil {
+						log.Print(err)
+					}
+				default:
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(answer)).Do(); err != nil {
+						log.Print(err)
+					}
 				}
 			}
 		}

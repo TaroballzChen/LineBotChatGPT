@@ -54,7 +54,7 @@ enjoy!
 
 ## update
 - 2023.3.6 change the model from `Completion` to `ChatCompletion` with `GPT3Dot5Turbo`
-
+- 2023.10.1 change the model from `ChatCompletion` with `GPT3Dot5Turbo` to `ChatCompletion` with `GPT4` and add Image create function
 ## Reference
 1. https://github.com/kkdai/linebot-group
 2. https://github.com/kkdai/LineBotTemplate
