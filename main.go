@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/bincooo/claude-api"
+	"github.com/bincooo/claude-api/types"
+	"github.com/bincooo/claude-api/vars"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 	openai "github.com/sashabaranov/go-openai"
@@ -19,7 +22,11 @@ var bot *linebot.Client
 
 // OpenAI Api key
 var OpenAIApiKey string
-var AIName string
+var GPTName string
+
+// Claude2 Api key
+var Claude2ApiKey string
+var Claude2Name string
 
 // CompletionModelParam
 var MaxTokens int
@@ -29,14 +36,12 @@ var FrequencyPenalty float32
 var PresencePenalty float32
 var ErrEnvVarEmpty = errors.New("getenv: environment variable empty")
 
-// chatWithAI
-var isChatWithAnotherAI bool
-var chatPartner string
-
 func main() {
 	var err error
-	OpenAIApiKey = os.Getenv("OpenApiKey")
-	AIName = os.Getenv("AIName")
+	OpenAIApiKey = os.Getenv("OpenAIApiKey")
+	Claude2ApiKey = os.Getenv("Claude2ApiKey")
+	GPTName = os.Getenv("GPTName")
+	Claude2Name = os.Getenv("Claude2Name")
 	GetModelParamFromEnv()
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -67,17 +72,6 @@ func GetModelParamFromEnv() {
 	if PresencePenalty, err = getenvFloat("PresencePenalty"); err != nil {
 		log.Println("PresencePenalty", err)
 		err = nil
-	}
-	if isChatWithAnotherAI, err = getenvBoolean("isChatWithAnotherAI"); err != nil {
-		log.Println("isChatWithAnotherAI", err)
-		err = nil
-	}
-
-	if isChatWithAnotherAI {
-		if chatPartner, err = getenvStr("chatPartner"); err != nil {
-			log.Println("chatPartner", err)
-			err = nil
-		}
 	}
 }
 
@@ -112,26 +106,6 @@ func getenvFloat(key string) (float32, error) {
 		return 0, err
 	}
 	return float32(v), nil
-}
-
-func getenvBoolean(key string) (bool, error) {
-	s, err := getenvStr(key)
-	if err != nil {
-		return false, err
-	}
-	v, err := strconv.ParseBool(s)
-	if err != nil {
-		return false, err
-	}
-	return v, nil
-}
-
-func isChatPartner(user linebot.UserProfileResponse) bool {
-	if user.DisplayName == chatPartner {
-		log.Println("the chatPartner", chatPartner, "is existed!")
-		return true
-	}
-	return false
 }
 
 func GetResponse(client *openai.Client, ctx context.Context, question string) string {
@@ -183,6 +157,22 @@ func GetImageResponse(client *openai.Client, ctx context.Context, question strin
 	return answer
 }
 
+func Cluaude2OutputText(partialResponse chan types.PartialResponse) string {
+	var text string
+	for {
+		message, ok := <-partialResponse
+		if !ok {
+			return text
+		}
+
+		if message.Error != nil {
+			log.Println("Claude2 join message Error:", message.Error)
+		}
+
+		text += message.Text
+	}
+}
+
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
 	if err != nil {
@@ -205,50 +195,65 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				switch {
 				case event.Source.GroupID != "":
 					//In the group
-					if !strings.HasPrefix(message.Text, AIName) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
 						log.Println("Group", event.Source.GroupID, "message: ", message.Text)
 						return
 					}
-					question = strings.Replace(question, AIName, "", 1)
 
 				case event.Source.RoomID != "":
 					//In the room
-					if !strings.HasPrefix(message.Text, AIName) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
 						log.Println("Room", event.Source.RoomID, "message: ", message.Text)
 						return
 					}
-					question = strings.Replace(question, AIName, "", 1)
-
 				}
+
+				// decide the AI object
+				var AIObject string
+				switch {
+				case strings.HasPrefix(message.Text, GPTName):
+					AIObject = GPTName
+				case strings.HasPrefix(message.Text, Claude2Name):
+					AIObject = Claude2Name
+				default:
+					AIObject = Claude2Name
+				}
+				question = strings.Replace(question, AIObject, "", 1)
 
 				log.Println("Q:", question)
 
 				ctx := context.Background()
-				client := openai.NewClient(OpenAIApiKey)
 
 				var answer string
 
-				// Handle the special question with image and text
-				switch {
-				case strings.HasPrefix(question, "作圖"):
-					question = strings.Replace(question, "作圖", "", 1)
-					answer = GetImageResponse(client, ctx, question)
-				default:
-					answer = GetResponse(client, ctx, question)
+				switch AIObject {
+				case GPTName:
+					client := openai.NewClient(OpenAIApiKey)
+					// Handle the special question with image and text
+					switch {
+					case strings.HasPrefix(question, "作圖"):
+						question = strings.Replace(question, "作圖", "", 1)
+						answer = GetImageResponse(client, ctx, question)
+					default:
+						answer = GetResponse(client, ctx, question)
+					}
+				case Claude2Name:
+					options := claude.NewDefaultOptions(Claude2ApiKey, "", vars.Model4WebClaude2)
+					chat, err := claude.New(options)
+					if err != nil {
+						log.Println("Call Claude2 API Error:", err)
+					}
+					partialResponse, err := chat.Reply(ctx, question, nil)
+					if err != nil {
+						log.Println("Call Claude2 API and occur response error:", err)
+					}
+					answer = Cluaude2OutputText(partialResponse)
 				}
 
 				log.Println("A:", answer)
 
-				if event.Source.GroupID != "" && isChatWithAnotherAI && chatPartner != "" {
-					if profile, err := bot.GetGroupMemberProfile(event.Source.GroupID, event.Source.UserID).Do(); err == nil {
-						if isChatPartner(*profile) {
-							answer = chatPartner + answer
-						}
-					}
-
-				}
 				switch {
-				case strings.HasPrefix(answer, "https://"):
+				case strings.HasPrefix(answer, "https://") && AIObject == GPTName:
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(answer, answer)).Do(); err != nil {
 						log.Print(err)
 					}

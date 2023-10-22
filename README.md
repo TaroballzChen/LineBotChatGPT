@@ -55,9 +55,11 @@ enjoy!
 ## update
 - 2023.3.6 change the model from `Completion` to `ChatCompletion` with `GPT3Dot5Turbo`
 - 2023.10.1 change the model from `ChatCompletion` with `GPT3Dot5Turbo` to `ChatCompletion` with `GPT4` and add Image create function
+- 2023.10.23 add Claude2 model
 ## Reference
 1. https://github.com/kkdai/linebot-group
 2. https://github.com/kkdai/LineBotTemplate
 3. https://www.learncodewithmike.com/2020/06/python-line-bot.html
 4. https://github.com/kkdai/chatgpt
 5. https://github.com/PullRequestInc/go-gpt3
+6. https://github.com/bincooo/claude-api
