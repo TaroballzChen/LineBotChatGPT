@@ -38,9 +38,9 @@ then use `ngrok` or other method(cloud container like railway.app, Heroku or ngi
 enjoy!
 
 ### Railway.app Deploy
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template/UTbtDt?referralCode=Taroballz)
-
-- fill your LINE `ChannelSecret`, `ChannelAccessToken` and OpenAI `OpenApiKey` token
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/2Ylu2G?referralCode=Taroballz)
+- fill `PORT` `80` for required environment variable
+- fill your LINE `ChannelSecret`, `ChannelAccessToken` and OpenAI `OpenAIApiKey` token, Claude2 `Claude2ApiKey` token for required environment variable
 
 P.S. You should own the github account to sign up the railway.app account. When you create container by my template on the above, the railway.app would help you fork my github project to your repo. then you could modify the model parameter's value on your forked project.
 
@@ -56,6 +56,8 @@ enjoy!
 - 2023.3.6 change the model from `Completion` to `ChatCompletion` with `GPT3Dot5Turbo`
 - 2023.10.1 change the model from `ChatCompletion` with `GPT3Dot5Turbo` to `ChatCompletion` with `GPT4` and add Image create function
 - 2023.10.23 add Claude2 model
+- 2023.10.28 add memory function for Claude2 model
+
 ## Reference
 1. https://github.com/kkdai/linebot-group
 2. https://github.com/kkdai/LineBotTemplate

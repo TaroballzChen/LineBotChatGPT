@@ -17,6 +17,9 @@ import (
 	"strings"
 )
 
+//Claude2Chat object map for different user/group/room
+var Claude2Chat = map[string]types.Chat{}
+
 // linebot client ptr
 var bot *linebot.Client
 
@@ -191,10 +194,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			case *linebot.TextMessage:
 
 				question := message.Text
-
+				var _ID string
 				switch {
 				case event.Source.GroupID != "":
 					//In the group
+					_ID = event.Source.GroupID
 					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
 						log.Println("Group", event.Source.GroupID, "message: ", message.Text)
 						return
@@ -202,10 +206,14 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 				case event.Source.RoomID != "":
 					//In the room
+					_ID = event.Source.RoomID
 					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
 						log.Println("Room", event.Source.RoomID, "message: ", message.Text)
 						return
 					}
+				case event.Source.UserID != "":
+					//In the personal chat
+					_ID = event.Source.UserID
 				}
 
 				// decide the AI object
@@ -238,16 +246,26 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						answer = GetResponse(client, ctx, question)
 					}
 				case Claude2Name:
-					options := claude.NewDefaultOptions(Claude2ApiKey, "", vars.Model4WebClaude2)
-					chat, err := claude.New(options)
-					if err != nil {
-						log.Println("Call Claude2 API Error:", err)
+					if _, ok := Claude2Chat[_ID]; !ok {
+						options := claude.NewDefaultOptions(Claude2ApiKey, "", vars.Model4WebClaude2)
+						chatObj, err := claude.New(options)
+						if err != nil {
+							log.Println("New Claude2 Chat Error:", err)
+						}
+						Claude2Chat[_ID] = chatObj
 					}
-					partialResponse, err := chat.Reply(ctx, question, nil)
-					if err != nil {
-						log.Println("Call Claude2 API and occur response error:", err)
+					if question == "銷毀記憶" {
+						Claude2Chat[_ID].Delete()
+						delete(Claude2Chat, _ID)
+						answer = "已銷毀編號為" + _ID + "的記憶"
+					} else {
+						chat := Claude2Chat[_ID]
+						partialResponse, err := chat.Reply(ctx, question, nil)
+						if err != nil {
+							log.Println("Call Claude2 API and occur response error:", err)
+						}
+						answer = Cluaude2OutputText(partialResponse)
 					}
-					answer = Cluaude2OutputText(partialResponse)
 				}
 
 				log.Println("A:", answer)
