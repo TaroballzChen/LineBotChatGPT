@@ -7,9 +7,11 @@ import (
 	"github.com/bincooo/claude-api"
 	"github.com/bincooo/claude-api/types"
 	"github.com/bincooo/claude-api/vars"
+	"github.com/google/generative-ai-go/genai"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
 	openai "github.com/sashabaranov/go-openai"
+	"google.golang.org/api/option"
 	"log"
 	"net/http"
 	"os"
@@ -17,8 +19,11 @@ import (
 	"strings"
 )
 
-//Claude2Chat object map for different user/group/room
+// Claude2Chat object map for different user/group/room
 var Claude2Chat = map[string]types.Chat{}
+
+// GeminiChat object map for different user/group/room
+var GeminiChat = map[string]map[string]interface{}{}
 
 // linebot client ptr
 var bot *linebot.Client
@@ -31,6 +36,10 @@ var GPTName string
 var Claude2ApiKey string
 var Claude2Name string
 
+// Gemini AI Api key
+var GeminiApiKey string
+var GeminiName string
+
 // CompletionModelParam
 var MaxTokens int
 var Temperature float32
@@ -41,8 +50,10 @@ var ErrEnvVarEmpty = errors.New("getenv: environment variable empty")
 
 func main() {
 	var err error
+	GeminiApiKey = os.Getenv("GeminiApiKey")
 	OpenAIApiKey = os.Getenv("OpenAIApiKey")
 	Claude2ApiKey = os.Getenv("Claude2ApiKey")
+	GeminiName = os.Getenv("GeminiName")
 	GPTName = os.Getenv("GPTName")
 	Claude2Name = os.Getenv("Claude2Name")
 	GetModelParamFromEnv()
@@ -176,6 +187,24 @@ func Cluaude2OutputText(partialResponse chan types.PartialResponse) string {
 	}
 }
 
+func GeminiOutputText(ChatSession *genai.ChatSession, ctx context.Context, question string) string {
+	res, err := ChatSession.SendMessage(ctx, genai.Text(question))
+	if err != nil {
+		errString := fmt.Sprintf("Gemini Response Error: %s", err)
+		log.Println(errString)
+		return errString
+	}
+
+	var text string
+	for _, cand := range res.Candidates {
+		for _, part := range cand.Content.Parts {
+			part_string := fmt.Sprintf("%s", part)
+			text += part_string
+		}
+	}
+	return text
+}
+
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
 	if err != nil {
@@ -199,7 +228,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.GroupID != "":
 					//In the group
 					_ID = event.Source.GroupID
-					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) {
 						log.Println("Group", event.Source.GroupID, "message: ", message.Text)
 						return
 					}
@@ -207,7 +236,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.RoomID != "":
 					//In the room
 					_ID = event.Source.RoomID
-					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) {
 						log.Println("Room", event.Source.RoomID, "message: ", message.Text)
 						return
 					}
@@ -223,8 +252,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					AIObject = GPTName
 				case strings.HasPrefix(message.Text, Claude2Name):
 					AIObject = Claude2Name
+				case strings.HasPrefix(message.Text, GeminiName):
+					AIObject = GeminiName
 				default:
-					AIObject = Claude2Name
+					AIObject = GeminiName
 				}
 				question = strings.Replace(question, AIObject, "", 1)
 
@@ -265,6 +296,29 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 							log.Println("Call Claude2 API and occur response error:", err)
 						}
 						answer = Cluaude2OutputText(partialResponse)
+					}
+				case GeminiName:
+					if _, ok := GeminiChat[_ID]; !ok {
+						client, err := genai.NewClient(ctx, option.WithAPIKey(GeminiApiKey))
+						if err != nil {
+							log.Println("New Gemini Chat Error:", err)
+						}
+						GeminiChat[_ID] = map[string]interface{}{}
+						GeminiChat[_ID]["client"] = client
+						model := client.GenerativeModel("gemini-pro")
+						cs := model.StartChat()
+						GeminiChat[_ID]["chatSession"] = cs
+					}
+					if question == "銷毀記憶" {
+						err := GeminiChat[_ID]["client"].(*genai.Client).Close()
+						if err != nil {
+							log.Println("Close Gemini Chat Error:", err)
+						}
+						delete(GeminiChat, _ID)
+						answer = "已銷毀編號為" + _ID + "的Gemini記憶"
+					} else {
+						cs := GeminiChat[_ID]["chatSession"].(*genai.ChatSession)
+						answer = GeminiOutputText(cs, ctx, question)
 					}
 				}
 

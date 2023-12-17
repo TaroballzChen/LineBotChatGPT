@@ -57,6 +57,7 @@ enjoy!
 - 2023.10.1 change the model from `ChatCompletion` with `GPT3Dot5Turbo` to `ChatCompletion` with `GPT4` and add Image create function
 - 2023.10.23 add Claude2 model
 - 2023.10.28 add memory function for Claude2 model
+- 2023.12.18 add Gemini model and with memory
 
 ## Reference
 1. https://github.com/kkdai/linebot-group
@@ -65,3 +66,4 @@ enjoy!
 4. https://github.com/kkdai/chatgpt
 5. https://github.com/PullRequestInc/go-gpt3
 6. https://github.com/bincooo/claude-api
+7. https://github.com/google/generative-ai-go?tab=readme-ov-file

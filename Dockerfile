@@ -1,4 +1,4 @@
-FROM golang:1.19.3
+FROM golang:1.21.5
 
 RUN apt update
 RUN apt install -y curl git
