@@ -124,7 +124,7 @@ func getenvFloat(key string) (float32, error) {
 
 func GetResponse(client *openai.Client, ctx context.Context, question string) string {
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4,
+		Model: openai.GPT4TurboPreview,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
