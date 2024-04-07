@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/3JoB/anthropic-sdk-go/v2/pkg/pool"
+	//"github.com/3JoB/anthropic-sdk-go/v2"
+	//"github.com/3JoB/anthropic-sdk-go/v2/data"
+	//"github.com/3JoB/anthropic-sdk-go/v2/pkg/pool"
+	//"github.com/3JoB/anthropic-sdk-go/v2/resp"
 	"github.com/bincooo/claude-api"
 	"github.com/bincooo/claude-api/types"
-	"github.com/bincooo/claude-api/vars"
 	"github.com/google/generative-ai-go/genai"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/line/line-bot-sdk-go/v7/linebot"
@@ -21,6 +25,8 @@ import (
 
 // Claude2Chat object map for different user/group/room
 var Claude2Chat = map[string]types.Chat{}
+
+//var Claude2Chat = map[string]*pool.Session{}
 
 // GeminiChat object map for different user/group/room
 var GeminiChat = map[string]map[string]interface{}{}
@@ -187,6 +193,10 @@ func Cluaude2OutputText(partialResponse chan types.PartialResponse) string {
 	}
 }
 
+func Cluaude3OutputText(Session *pool.Session) string {
+	return Session.Response.String()
+}
+
 func GeminiOutputText(ChatSession *genai.ChatSession, ctx context.Context, question string) string {
 	res, err := ChatSession.SendMessage(ctx, genai.Text(question))
 	if err != nil {
@@ -277,25 +287,51 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 						answer = GetResponse(client, ctx, question)
 					}
 				case Claude2Name:
+					//options := anthropic.Config{Key: Claude2ApiKey, DefaultModel: data.ModelFullClaude3Haiku}
+					//chat, err := anthropic.New(&options)
+					//if err != nil {
+					//	log.Println("New Claude Chat Error:", err)
+					//}
 					if _, ok := Claude2Chat[_ID]; !ok {
-						options := claude.NewDefaultOptions(Claude2ApiKey, "", vars.Model4WebClaude2)
+						//old package usage
+						options := claude.NewDefaultOptions(Claude2ApiKey, "claude-3-haiku-20240307")
 						chatObj, err := claude.New(options)
+
+						//d, err := chat.Send(
+						//	&anthropic.Sender{
+						//		Message: data.MessageModule{
+						//			Human: "你現在是一個強大且知識量儲備非常豐富的AI助理",
+						//		},
+						//		Sender: &resp.Sender{MaxToken: uint(MaxTokens)},
+						//	})
 						if err != nil {
 							log.Println("New Claude2 Chat Error:", err)
 						}
+
 						Claude2Chat[_ID] = chatObj
 					}
 					if question == "銷毀記憶" {
 						Claude2Chat[_ID].Delete()
+						//chat.CloseSession(Claude2Chat[_ID])
 						delete(Claude2Chat, _ID)
 						answer = "已銷毀編號為" + _ID + "的記憶"
 					} else {
 						chat := Claude2Chat[_ID]
 						partialResponse, err := chat.Reply(ctx, question, nil)
+
+						//ds, err := chat.Send(
+						//	&anthropic.Sender{
+						//		Message: data.MessageModule{
+						//			Human: question,
+						//		},
+						//		SessionID: Claude2Chat[_ID].ID,
+						//		Sender:    &resp.Sender{MaxToken: uint(MaxTokens)},
+						//	})
 						if err != nil {
-							log.Println("Call Claude2 API and occur response error:", err)
+							log.Println("Call Claude API and occur response error:", err)
 						}
 						answer = Cluaude2OutputText(partialResponse)
+						//answer = Cluaude3OutputText(ds)
 					}
 				case GeminiName:
 					if _, ok := GeminiChat[_ID]; !ok {
