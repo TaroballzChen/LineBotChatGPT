@@ -58,6 +58,7 @@ enjoy!
 - 2023.10.23 add Claude2 model
 - 2023.10.28 add memory function for Claude2 model
 - 2023.12.18 add Gemini model and with memory
+- 2024.06.26 change the model from `ChatCompletion` with `GPT4TurboPreivew` to `ChatCompletion` with `GPT4o`
 
 ## Reference
 1. https://github.com/kkdai/linebot-group

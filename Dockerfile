@@ -1,4 +1,4 @@
-FROM golang:1.21.5
+FROM golang:1.22.3
 
 RUN apt update
 RUN apt install -y curl git

@@ -130,11 +130,11 @@ func getenvFloat(key string) (float32, error) {
 
 func GetResponse(client *openai.Client, ctx context.Context, question string) string {
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: openai.GPT4TurboPreview,
+		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "你是一個知識儲量非常豐富且有問必答的強大AI助理",
+				Content: "你是一個知識儲量非常豐富、專業且有問必答的強大AI助理",
 			},
 			{
 				Role:    "user",
@@ -294,7 +294,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					//}
 					if _, ok := Claude2Chat[_ID]; !ok {
 						//old package usage
-						options := claude.NewDefaultOptions(Claude2ApiKey, "claude-3-haiku-20240307")
+						options := claude.NewDefaultOptions(Claude2ApiKey, "", "claude-3-sonnet-20240229")
 						chatObj, err := claude.New(options)
 
 						//d, err := chat.Send(
