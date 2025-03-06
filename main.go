@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/3JoB/anthropic-sdk-go/v2/pkg/pool"
+	"io"
 	//"github.com/3JoB/anthropic-sdk-go/v2"
 	//"github.com/3JoB/anthropic-sdk-go/v2/data"
 	//"github.com/3JoB/anthropic-sdk-go/v2/pkg/pool"
@@ -46,6 +49,11 @@ var Claude2Name string
 var GeminiApiKey string
 var GeminiName string
 
+// DeepSeek Azure Api key
+var DeepSeekAzureApiUrl string
+var DeepSeekAzureApiKey string
+var DeepSeekName string
+
 // CompletionModelParam
 var MaxTokens int
 var Temperature float32
@@ -59,9 +67,12 @@ func main() {
 	GeminiApiKey = os.Getenv("GeminiApiKey")
 	OpenAIApiKey = os.Getenv("OpenAIApiKey")
 	Claude2ApiKey = os.Getenv("Claude2ApiKey")
+	DeepSeekAzureApiKey = os.Getenv("DeepSeekAzureApiKey")
 	GeminiName = os.Getenv("GeminiName")
 	GPTName = os.Getenv("GPTName")
 	Claude2Name = os.Getenv("Claude2Name")
+	DeepSeekName = os.Getenv("DeepSeekName")
+	DeepSeekAzureApiUrl = os.Getenv("DeepSeekAzureApiUrl")
 	GetModelParamFromEnv()
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -215,6 +226,59 @@ func GeminiOutputText(ChatSession *genai.ChatSession, ctx context.Context, quest
 	return text
 }
 
+func DeepSeekOutputText(question string) string {
+	data := fmt.Sprintf(`{"model": "DeepSeek-R1","messages": [{"role": "user","content": "%s"}]}`, question)
+	jsonStr := []byte(data)
+	req, err := http.NewRequest("POST", DeepSeekAzureApiUrl, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("api-key", DeepSeekAzureApiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("DeepSeek Response Error:", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Println("DeepSeek Response Error:", resp.Status)
+		return "DeepSeek Response Error:" + resp.Status
+	}
+
+	type Response struct {
+		Choices []struct {
+			FinishReason string `json:"finish_reason"`
+			Index        int    `json:"index"`
+			Message      struct {
+				Content          string `json:"content"`
+				ReasoningContent any    `json:"reasoning_content"`
+				Role             string `json:"role"`
+				ToolCalls        any    `json:"tool_calls"`
+			} `json:"message"`
+		} `json:"choices"`
+		Created             int    `json:"created"`
+		ID                  string `json:"id"`
+		Model               string `json:"model"`
+		Object              string `json:"object"`
+		UsagempletionTokens int    `json:"usagempletion_tokens"`
+		PromptTokens        int    `json:"prompt_tokens"`
+		PromptTokensDetails any    `json:"prompt_tokens_details"`
+		TotalTokens         int    `json:"total_tokens"`
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+	var serializeResp Response
+	if err := json.Unmarshal(body, &serializeResp); err != nil { // Parse []byte to go struct pointer
+		fmt.Println("DeepSeek Response Error: Can not unmarshal JSON")
+	}
+	text := serializeResp.Choices[0].Message.Content
+	text = strings.Replace(text, "<think>", "", 1)
+	text = strings.Replace(text, "</think>", "", 1)
+	text = strings.TrimSpace(text)
+	return text
+}
+
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
 	if err != nil {
@@ -238,7 +302,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.GroupID != "":
 					//In the group
 					_ID = event.Source.GroupID
-					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) && !strings.HasPrefix(message.Text, DeepSeekName) {
 						log.Println("Group", event.Source.GroupID, "message: ", message.Text)
 						return
 					}
@@ -246,7 +310,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				case event.Source.RoomID != "":
 					//In the room
 					_ID = event.Source.RoomID
-					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) {
+					if !strings.HasPrefix(message.Text, GPTName) && !strings.HasPrefix(message.Text, Claude2Name) && !strings.HasPrefix(message.Text, GeminiName) && !strings.HasPrefix(message.Text, DeepSeekName) {
 						log.Println("Room", event.Source.RoomID, "message: ", message.Text)
 						return
 					}
@@ -264,8 +328,10 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					AIObject = Claude2Name
 				case strings.HasPrefix(message.Text, GeminiName):
 					AIObject = GeminiName
+				case strings.HasPrefix(message.Text, DeepSeekName):
+					AIObject = DeepSeekName
 				default:
-					AIObject = GeminiName
+					AIObject = DeepSeekName
 				}
 				question = strings.Replace(question, AIObject, "", 1)
 
@@ -276,6 +342,8 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				var answer string
 
 				switch AIObject {
+				case DeepSeekName:
+					answer = DeepSeekOutputText(question)
 				case GPTName:
 					client := openai.NewClient(OpenAIApiKey)
 					// Handle the special question with image and text

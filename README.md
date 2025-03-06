@@ -12,6 +12,8 @@ cd LineBotChatGPT
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
 echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
 echo OpenApiKey=your_OpenApiKey >>.env
+echo DeepSeekAzureApiKey=your_DeepSeekAzureApiKey >>.env
+echo DeepSeekAzureApiUrl=your_DeepSeekAzureApiUrl >>.env
 # you could modify the GPT-3 completion model parameter by modifying `.env` file
 go run main.go
 ```
@@ -23,12 +25,14 @@ enjoy!
 ### Dockerfile
 1. download the `Dockerfile`, `.env` file in this project
 2. `docker build --no-cache -t LineBotChatGPT:latest .`
-3. modify the `.env` file to fill the LINEBOT and OpneAI token:
+3. modify the `.env` file to fill the LINEBOT and OpenAI token:
 
 ```shell
 echo ChannelSecret=your_LINE_ChannelSecret >> .env
 echo ChannelAccessToken=your_LINE_ChannelAccessToken >> .env
 echo OpenApiKey=your_OpenApiKey >>.env
+echo DeepSeekAzureApiKey=your_DeepSeekAzureApiKey >>.env
+echo DeepSeekAzureApiUrl=your_DeepSeekAzureApiUrl >>.env
 # try to modify the GPT-3 completion model parameter by modifying `.env` file
 ```
 
@@ -59,6 +63,7 @@ enjoy!
 - 2023.10.28 add memory function for Claude2 model
 - 2023.12.18 add Gemini model and with memory
 - 2024.06.26 change the model from `ChatCompletion` with `GPT4TurboPreivew` to `ChatCompletion` with `GPT4o`
+- 2025.03.06 add DeepSeek-R1 model from Azure
 
 ## Reference
 1. https://github.com/kkdai/linebot-group
